@@ -5,8 +5,8 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { BaseTable } from './base.entity';
 import { MovieDetail } from './movie-detail.entity';
+import { BaseTable } from 'src/common/entity/base.entity';
 
 // ManyToOne Director -> 감독은 여러개의 영화를 만들 수 있음
 // OneToOne MovieDetail -> 영화는 하나의 상세 내용을 가질 수 있음
@@ -23,7 +23,9 @@ export class Movie extends BaseTable {
   @Column()
   genre: string;
 
-  @OneToOne(() => MovieDetail)
+  @OneToOne(() => MovieDetail, (movieDetail) => movieDetail.id, {
+    cascade: true,
+  })
   @JoinColumn()
   detail: MovieDetail;
 }
