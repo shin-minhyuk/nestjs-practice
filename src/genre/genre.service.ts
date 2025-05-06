@@ -20,8 +20,8 @@ export class GenreService {
     return this.genreRepository.find();
   }
 
-  findOne(id: number) {
-    const genre = this.genreRepository.find({
+  async findOne(id: number) {
+    const genre = await this.genreRepository.findOne({
       where: { id },
     });
 
@@ -33,7 +33,7 @@ export class GenreService {
   }
 
   async update(id: number, updateGenreDto: UpdateGenreDto) {
-    const genre = this.genreRepository.find({
+    const genre = await this.genreRepository.findOne({
       where: { id },
     });
 
@@ -43,14 +43,24 @@ export class GenreService {
 
     await this.genreRepository.update({ id }, { ...updateGenreDto });
 
-    const newGenre = this.genreRepository.find({
+    const newGenre = await this.genreRepository.find({
       where: { id },
     });
 
     return newGenre;
   }
 
-  remove(id: number) {
-    return this.genreRepository.delete(id);
+  async remove(id: number) {
+    const genre = await this.genreRepository.findOne({
+      where: { id },
+    });
+
+    if (!genre) {
+      throw new NotFoundException('존재하지 않는 장르입니다.');
+    }
+
+    await this.genreRepository.delete(id);
+
+    return id;
   }
 }
