@@ -2,7 +2,11 @@ import { CreateGenreDto } from './dto/create-genre.dto';
 import { UpdateGenreDto } from './dto/update-genre.dto';
 import { Repository } from 'typeorm';
 import { Genre } from './entities/genre.entity';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
@@ -12,7 +16,15 @@ export class GenreService {
     private readonly genreRepository: Repository<Genre>,
   ) {}
 
-  create(createGenreDto: CreateGenreDto) {
+  async create(createGenreDto: CreateGenreDto) {
+    const genre = await this.genreRepository.findOne({
+      where: { name: createGenreDto.name },
+    });
+
+    if (genre) {
+      throw new BadRequestException('이미 존재하는 장르입니다.');
+    }
+
     return this.genreRepository.save(createGenreDto);
   }
 

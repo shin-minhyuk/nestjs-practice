@@ -27,13 +27,22 @@ export class BearerTokenMiddleware implements NestMiddleware {
       return;
     }
 
+    // Basic 토큰인 경우 또는 Bearer 토큰이 아닌 경우 다음으로 넘김
+    if (
+      authHeader.toLowerCase().startsWith('basic ') ||
+      !authHeader.toLowerCase().startsWith('bearer ')
+    ) {
+      next();
+      return;
+    }
+
     try {
       const token = this.validateBearerToken(authHeader);
       const decodedPayload = await this.jwtService.decode(token);
 
       if (
-        decodedPayload.type !== 'refresh' &&
-        decodedPayload.type !== 'access'
+        !decodedPayload ||
+        (decodedPayload.type !== 'refresh' && decodedPayload.type !== 'access')
       ) {
         throw new UnauthorizedException('잘못된 토큰입니다.');
       }
@@ -47,23 +56,11 @@ export class BearerTokenMiddleware implements NestMiddleware {
         secret: this.configService.get<string>(secretKey),
       });
 
-      if (decodedPayload.type === 'refresh') {
-        if (payload.type !== 'refresh') {
-          throw new BadRequestException('Refresh 토큰을 입력해주세요.');
-        }
-      } else {
-        if (payload.type !== 'access') {
-          throw new BadRequestException('Access 토큰을 입력해주세요.');
-        }
-      }
-
+      // 토큰이 유효하면 req.user에 담고 넘김
       req.user = payload;
       next();
-    } catch (e) {
-      if (e.name === 'TokenExpiredError') {
-        throw new UnauthorizedException('토큰이 만료됐습니다.');
-      }
-
+    } catch {
+      // 토큰 검증 실패해도 다음으로 넘김 (AuthGuard에서 처리)
       next();
     }
   }
