@@ -43,4 +43,7 @@ export class Movie extends BaseTable {
     nullable: false,
   })
   director: Director;
+
+  @Column({ default: 0 })
+  likeCount: number;
 }
