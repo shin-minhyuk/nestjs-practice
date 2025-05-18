@@ -38,39 +38,29 @@ export class CommonService {
       const whereConditions = [];
       const parameters = {};
 
-      if (order.length === 1) {
-        const [column, direction] = order[0].split('_');
+      const [firstColumn, firstDirection] = order[0].split('_');
+      const firstOperator = firstDirection === 'DESC' ? '<' : '>';
+
+      whereConditions.push(
+        `${qb.alias}.${firstColumn} ${firstOperator} :cursor_${firstColumn}`,
+      );
+      parameters[`cursor_${firstColumn}`] = values[firstColumn];
+
+      for (let i = 1; i < order.length; i++) {
+        const [column, direction] = order[i].split('_');
         const operator = direction === 'DESC' ? '<' : '>';
 
+        let equalCondition = '';
+
+        for (let j = 0; j < i; j++) {
+          const [prevColumn] = order[j].split('_');
+          equalCondition += `${qb.alias}.${prevColumn} = :cursor_${prevColumn} AND `;
+        }
+
         whereConditions.push(
-          `${qb.alias}.${column} ${operator} :cursor_${column}`,
+          `(${equalCondition}${qb.alias}.${column} ${operator} :cursor_${column})`,
         );
         parameters[`cursor_${column}`] = values[column];
-      } else {
-        const [firstColumn, firstDirection] = order[0].split('_');
-        const firstOperator = firstDirection === 'DESC' ? '<' : '>';
-
-        whereConditions.push(
-          `${qb.alias}.${firstColumn} ${firstOperator} :cursor_${firstColumn}`,
-        );
-        parameters[`cursor_${firstColumn}`] = values[firstColumn];
-
-        for (let i = 1; i < order.length; i++) {
-          const [column, direction] = order[i].split('_');
-          const operator = direction === 'DESC' ? '<' : '>';
-
-          let equalCondition = '';
-
-          for (let j = 0; j < i; j++) {
-            const [prevColumn] = order[j].split('_');
-            equalCondition += `${qb.alias}.${prevColumn} = :cursor_${prevColumn} AND `;
-          }
-
-          whereConditions.push(
-            `(${equalCondition}${qb.alias}.${column} ${operator} :cursor_${column})`,
-          );
-          parameters[`cursor_${column}`] = values[column];
-        }
       }
 
       if (whereConditions.length > 0) {
