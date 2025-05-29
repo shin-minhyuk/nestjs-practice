@@ -11,8 +11,8 @@ import {
   ClassSerializerInterceptor,
   ParseIntPipe,
   Request,
-  UploadedFiles,
   BadRequestException,
+  UploadedFiles,
 } from '@nestjs/common';
 import { MovieService } from './movie.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
@@ -56,11 +56,29 @@ export class MovieController {
         },
         fileFilter(req, file, callback) {
           console.log(file);
-          if (file.mimetype !== 'video/mp4') {
-            return callback(
-              new BadRequestException('MP4 타입만 업로드 가능합니다.'),
-              false,
-            );
+
+          // 동영상 파일 검증
+          if (file.fieldname === 'movie') {
+            if (file.mimetype !== 'video/mp4') {
+              return callback(
+                new BadRequestException(
+                  '동영상은 MP4 타입만 업로드 가능합니다.',
+                ),
+                false,
+              );
+            }
+          }
+
+          // 포스터 이미지 파일 검증
+          if (file.fieldname === 'poster') {
+            if (!file.mimetype.startsWith('image/')) {
+              return callback(
+                new BadRequestException(
+                  '포스터는 이미지 파일만 업로드 가능합니다.',
+                ),
+                false,
+              );
+            }
           }
 
           return callback(null, true);
@@ -72,14 +90,14 @@ export class MovieController {
     @Body() body: CreateMovieDto,
     @Request() req,
     @UploadedFiles()
-    files: {
-      movie?: Express.Multer.File[];
-      poster?: Express.Multer.File[];
-    },
+    files: { movie?: Express.Multer.File[]; poster?: Express.Multer.File[] },
   ) {
-    console.log('--------------------------------');
-    console.log(files);
-    return this.movieService.create(body, req.queryRunner);
+    const movieFile = files.movie?.[0];
+    if (!movieFile) {
+      throw new BadRequestException('동영상 파일이 필요합니다.');
+    }
+
+    return this.movieService.create(body, movieFile.filename, req.queryRunner);
   }
 
   @Patch(':id')
